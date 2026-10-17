@@ -3,6 +3,12 @@
 > A gentle daily habit tracker made with Kotlin and Jetpack Compose.
 
 Set a small daily intention, check in when it's done, and watch a streak grow. Your habits are stored in private app preferences on the device; no account or cloud service is involved.
+## App preview
+
+![HabitGarden polished app preview](screenshots/app-preview.jpg)
+
+*Portfolio mockup composed from the current Compose layout and sample content.*
+
 
 ## Features
 
