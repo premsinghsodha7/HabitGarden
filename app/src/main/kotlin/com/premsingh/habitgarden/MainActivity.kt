@@ -3,6 +3,7 @@ package com.premsingh.habitgarden
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,8 +35,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.size
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.premsingh.habitgarden.data.HabitViewModel
@@ -70,8 +73,11 @@ private fun HabitGardenApp(vm: HabitViewModel = viewModel()) {
     var paletteIndex by rememberSaveable { mutableIntStateOf(0) }
     var remindersEnabled by rememberSaveable { mutableStateOf(true) }
     val palette = gardenPalettes[paletteIndex]
-    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = palette.accent, background = palette.background, surface = Color.White, onBackground = Ink)) {
-        Scaffold(containerColor = palette.background, topBar = { TopAppBar(title = { Text("HabitGarden", fontWeight = FontWeight.Bold) }) },
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = palette.accent, secondary = palette.accent, primaryContainer = palette.accent.copy(alpha = .18f), onPrimaryContainer = palette.accent, secondaryContainer = palette.accent.copy(alpha = .18f), onSecondaryContainer = palette.accent, background = palette.background, surface = Color.White, onBackground = Ink)) {
+        Scaffold(containerColor = palette.background, topBar = { TopAppBar(title = { Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Image(painterResource(com.premsingh.habitgarden.R.drawable.brand_logo), contentDescription = "HabitGarden logo", modifier = Modifier.size(38.dp))
+                Text("HabitGarden", fontWeight = FontWeight.Bold)
+            } }) },
             bottomBar = { NavigationBar(containerColor = Color.White) { GardenTab.entries.forEach { destination ->
                 NavigationBarItem(selected = tab == destination, onClick = { tab = destination }, icon = { Text(destination.glyph) }, label = { Text(destination.label) })
             } } },
