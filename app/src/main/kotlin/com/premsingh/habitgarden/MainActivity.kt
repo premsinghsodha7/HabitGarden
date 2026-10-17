@@ -22,12 +22,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,6 +47,14 @@ private val Paper = Color(0xFFF5F6EE)
 private val Ink = Color(0xFF222A23)
 private val Muted = Color(0xFF748076)
 
+private enum class GardenTab(val label: String, val glyph: String) { Today("Today", "⌂"), Insights("Insights", "▥"), Settings("Settings", "⚙") }
+private data class GardenPalette(val name: String, val background: Color, val accent: Color)
+private val gardenPalettes = listOf(
+    GardenPalette("Meadow", Color(0xFFF5F6EE), Color(0xFF42664B)),
+    GardenPalette("Sky", Color(0xFFF0F5F7), Color(0xFF35617A)),
+    GardenPalette("Dusk", Color(0xFFF7F1EA), Color(0xFF8A5A43))
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { HabitGardenApp() } }
 }
@@ -55,10 +66,18 @@ private fun HabitGardenApp(vm: HabitViewModel = viewModel()) {
     val today = System.currentTimeMillis() / 86_400_000L
     val done = habits.count { it.isComplete(today) }
     var showAdd by remember { mutableStateOf(false) }
-    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = Moss, background = Paper, surface = Color.White, onBackground = Ink)) {
-        Scaffold(containerColor = Paper, topBar = { TopAppBar(title = { Text("HabitGarden", fontWeight = FontWeight.Bold) }) },
-            floatingActionButton = { Button(onClick = { showAdd = true }) { Text("＋ New habit") } }) { padding ->
-            LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    var tab by rememberSaveable { mutableStateOf(GardenTab.Today) }
+    var paletteIndex by rememberSaveable { mutableIntStateOf(0) }
+    var remindersEnabled by rememberSaveable { mutableStateOf(true) }
+    val palette = gardenPalettes[paletteIndex]
+    MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = palette.accent, background = palette.background, surface = Color.White, onBackground = Ink)) {
+        Scaffold(containerColor = palette.background, topBar = { TopAppBar(title = { Text("HabitGarden", fontWeight = FontWeight.Bold) }) },
+            bottomBar = { NavigationBar(containerColor = Color.White) { GardenTab.entries.forEach { destination ->
+                NavigationBarItem(selected = tab == destination, onClick = { tab = destination }, icon = { Text(destination.glyph) }, label = { Text(destination.label) })
+            } } },
+            floatingActionButton = { if (tab == GardenTab.Today) Button(onClick = { showAdd = true }) { Text("＋ New habit") } }) { padding ->
+            when (tab) {
+                GardenTab.Today -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 item {
                     Text("Small steps grow into something good.", color = Muted)
                     Spacer(Modifier.height(8.dp))
@@ -76,6 +95,26 @@ private fun HabitGardenApp(vm: HabitViewModel = viewModel()) {
                 item { Text("Your daily rhythm", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp)) }
                 items(habits, key = { it.id }) { habit -> HabitCard(habit, today, onToggle = { vm.toggleToday(habit.id) }, onDelete = { vm.delete(habit.id) }) }
                 item { Text("Your habits are saved privately on this device.", color = Muted, modifier = Modifier.padding(vertical = 16.dp)) }
+            }
+                GardenTab.Insights -> LazyColumn(Modifier.fillMaxSize().padding(padding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    item { Text("Your growth", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); Text("A gentle look at your weekly rhythm", color = Muted) }
+                    item { Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFE5EEDC))) { Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Today", color = Muted); Text("$done of ${habits.size} habits", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold); LinearProgressIndicator(progress = { weeklyProgress(done, habits.size) }, modifier = Modifier.fillMaxWidth(), color = palette.accent)
+                    } } }
+                    item { Text("This week", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium) }
+                    listOf("Mon" to .78f, "Tue" to .55f, "Wed" to .88f, "Thu" to .44f, "Fri" to .68f, "Sat" to .32f, "Sun" to weeklyProgress(done, habits.size)).forEach { (day, progress) ->
+                        item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) { Text(day, modifier = Modifier.weight(1f), color = Muted); LinearProgressIndicator(progress = { progress }, modifier = Modifier.weight(4f), color = palette.accent); Text("${(progress * 100).toInt()}%", color = Muted) } }
+                    }
+                    item { Text("Your streaks grow one check-in at a time.", color = Muted) }
+                }
+                GardenTab.Settings -> Column(Modifier.fillMaxSize().padding(padding).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Settings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Text("Choose a garden", color = Muted)
+                    gardenPalettes.forEachIndexed { index, option -> FilterChip(selected = paletteIndex == index, onClick = { paletteIndex = index }, label = { Text("${option.name} theme") }) }
+                    androidx.compose.material3.Switch(checked = remindersEnabled, onCheckedChange = { remindersEnabled = it })
+                    Text(if (remindersEnabled) "Daily reminder is enabled on this device." else "Daily reminder is paused.", color = Muted)
+                    Text("Habit data is saved privately on this device.", color = Muted)
+                }
             }
         }
         if (showAdd) AddHabitDialog({ showAdd = false }) { name, emoji, minutes -> vm.add(name, emoji, minutes); showAdd = false }
